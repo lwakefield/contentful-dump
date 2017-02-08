@@ -39,16 +39,27 @@ async function run (input) {
     const count = getAssetCount(assets)
     debug(`Fetching ${count} assets`)
 
+    const start = new Date()
+
     let fetched = 0
     for (const asset of assets) {
         const localizedFiles = asset.fields.file
         for (const locale in localizedFiles) {
             const file = localizedFiles[locale]
+            try {
             const data = await fetch(`https:${file.url}`)
             writeFileSync(`${args.output}/${locale}_${asset.sys.id}`, data)
-            debug(`Fetched ${fetched++} / ${count}`)
+            } catch (e) {
+                debug(`Error:`, e)
+            }
+            debug(`Fetched ${++fetched} / ${count}: ${file.fileName}`)
         }
     }
+
+    const elapsed = (new Date()) - start
+    const size = execSync('du -h').toString().split(/\s/)[0]
+
+    debug(`Fetched ${size} in ${elapsed / (60 * 60)}m`)
 }
 
 function getAssetCount(assets) {
@@ -62,14 +73,17 @@ function getAssetCount(assets) {
 function fetch (url) {
     return new Promise((res, rej) => {
         request(url, (err, response, body) => {
-            if (err) return rej(err)
-            res(body)
+            if (err || response.statusCode !== 200) {
+                return rej(err, response)
+            }
+
+            return res(body)
         })
     })
 }
 
-function debug(str) {
-    args.verbose && console.log(str)
+function debug() {
+    args.verbose && console.log(...arguments)
 }
 
 init()

@@ -8,10 +8,6 @@ const client = contentful.createClient({
     accessToken: ENV.CONTENTFUL_ACCESS_TOKEN
 })
 
-let space
-const loadSpace = () => client.getSpace(ENV.CONTENTFUL_SPACE_ID)
-    .then(v => space = v)
-
 async function paginate(fn) {
     const limit = 1000
     const entries = []
@@ -25,14 +21,23 @@ async function paginate(fn) {
     return entries
 }
 
-loadSpace()
-    .then(() => Promise.all([
+async function run () {
+    const space = await client.getSpace(ENV.CONTENTFUL_SPACE_ID)
+    const [
+        entries,
+        assets,
+        roles,
+        locales,
+        webhooks
+    ] = await Promise.all([
         paginate(space.getEntries),
         paginate(space.getAssets),
         space.getRoles(),
         space.getLocales(),
         space.getWebhooks(),
-    ]))
-    .then(([entries, assets, roles, locales, webhooks]) =>
-        process.stdout.write(JSON.stringify({entries, assets, roles, locales, webhooks}))
-    )
+    ])
+
+    process.stdout.write(JSON.stringify({entries, assets, roles, locales, webhooks}))
+}
+
+run()
