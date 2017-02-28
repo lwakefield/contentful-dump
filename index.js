@@ -16,7 +16,7 @@ async function paginate(fn) {
         const page = await fn({skip: entries.length, limit})
         const items = page.items || []
         entries.push(...items)
-        isDone = !!items.length
+        isDone = !items.length
     }
     return entries
 }
@@ -28,16 +28,31 @@ async function run () {
         assets,
         roles,
         locales,
-        webhooks
+        webhooks,
+        contentTypes,
     ] = await Promise.all([
         paginate(space.getEntries),
         paginate(space.getAssets),
-        space.getRoles(),
-        space.getLocales(),
-        space.getWebhooks(),
+        paginate(space.getRoles),
+        paginate(space.getLocales),
+        paginate(space.getWebhooks),
+        paginate(space.getContentTypes),
     ])
+    const editorInterfaces = await Promise.all(
+        contentTypes.map(v => v.getEditorInterface())
+    )
 
-    process.stdout.write(JSON.stringify({entries, assets, roles, locales, webhooks}))
+    const output = JSON.stringify({
+        entries,
+        assets,
+        roles,
+        locales,
+        webhooks,
+        editorInterfaces,
+        contentTypes
+    })
+
+    process.stdout.write(output)
 }
 
 run()
