@@ -16,7 +16,8 @@ async function paginate(fn) {
         const page = await fn({skip: entries.length, limit})
         const items = page.items || []
         entries.push(...items)
-        isDone = !items.length
+        // console.log(`${fn.name}: ${entries.length}/${page.total}`);
+        isDone = entries.length >= page.total
     }
     return entries
 }
